@@ -1,0 +1,128 @@
+cache:
+  paths:
+    - win-variables.txt
+
+stages:
+  - check
+  - build
+  - publish
+  - notify
+
+check_astyle:
+  stage: check
+  tags: 
+    - win_shell_check
+  script:
+    - D:\python\python.exe .\tools\gitlab_cicd\format_check\run-clang-format.py --clang-format-executable .\tools\gitlab_cicd\format_check\win\clang-format.exe -r source\src\
+    - .\tools\gitlab_cicd\format_check\win\CodeFormat.exe check -w devops\bin\res\lua\ -DAE -c .editorconfig
+    - .\tools\gitlab_cicd\format_check\win\luacheck.exe .\devops\bin\res\lua --no-config --no-default-config --codes --exclude-files **/config.lua
+    - ls
+  only:
+    - master
+
+check_diagnosis:
+  stage: check
+  tags: 
+    - win_shell_check
+  script:
+    - D:\python\python.exe .\tools\gitlab_cicd\format_check\run-clang-format.py --clang-format-executable .\tools\gitlab_cicd\format_check\win\clang-format.exe -r source\src\
+    - .\tools\gitlab_cicd\format_check\win\CodeFormat.exe check -w devops\bin\res\lua\ -DAE -c .editorconfig
+    - .\tools\gitlab_cicd\format_check\win\luacheck.exe .\devops\bin\res\lua --no-config --no-default-config --codes --exclude-files **/config.lua
+    - ls
+  only:
+    - master
+
+build_linux:
+  stage: build
+  tags:
+    - linux_shell_build
+  script:
+    - mkdir -p Linux/gcc
+    - cd Linux/gcc
+    - cmake -DCMAKE_INSTALL_PREFIX="../../source" --G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Debug "../../source" -DDEBUG_3RDPARTY_OUTPUT=ON
+    - cmake --build ./ --target install --config Debug
+  only:  
+    refs:
+      - master
+    changes:
+      - source/src/**/*.c
+      - source/src/**/*.h
+      - source/src/**/*.cpp
+      - source/src/**/*.hpp
+
+publish_linux:
+  stage: publish
+  tags:
+    - linux_shell_publish
+  artifacts:
+    name: "$LINUX_PACKER_NAME"
+    paths:
+      - devops/
+    expire_in: 1 week
+  script:  
+    - ls
+  only:
+    - master
+
+build_win:
+  stage: build
+  tags:
+    - win_shell_build
+  script:
+    - md "Windows/msvc-x64"
+    - cd "Windows/msvc-x64"
+    - cmake -DCMAKE_INSTALL_PREFIX="../../source" -G"Visual Studio 16 2019" -A x64 -DCMAKE_BUILD_TYPE=Debug "../../source" -DDEBUG_3RDPARTY_OUTPUT=ON -DINSTALL_3RDPARTY=ON
+    - cmake --build ./ --target install --config Debug
+    - cd ../..
+  only:  
+    refs:
+      - master
+    changes:
+      - source/src/**/*.c
+      - source/src/**/*.h
+      - source/src/**/*.cpp
+      - source/src/**/*.hpp
+
+publish_win:
+  stage: publish
+  tags:
+    - win_shell_publish
+  script: 
+    - echo "$CI_JOB_ID"
+    - New-Item win-variables.txt -Force
+    - Add-Content win-variables.txt -value "$env:CI_JOB_ID" -PassThru
+    - dir
+  artifacts:
+    name: "$WIN_PACKER_NAME"
+    paths:
+      - devops/
+    expire_in: 1 week
+  only:
+    - master
+
+shell_notify_fail:
+  stage: notify
+  script:
+    - cd '.\tools\gitlab_cicd\'
+    - D:\python\python.exe shell_notify.py -rt 失败 -pgu "$GITLAB_CI_POST_GROUP_URL" -puu "$GITLAB_CI_POST_USERLIST_URL" -aid "$GITLAB_CI_POST_APPID" -apk "$GITLAB_CI_POST_APPKEY" -apt "$GITLAB_CI_POST_PUSHTYPE" -us "$GITLAB_USER_NAME" -pr "$CI_PROJECT_NAME" -rn "$CI_COMMIT_REF_NAME" -cs "$CI_COMMIT_SHA" -bj "$CI_JOB_ID" -pu "$CI_PROJECT_URL" -pi "$CI_PIPELINE_ID" -tok "$GITLAB_CI_POST_PRIVATE_TOKEN"
+  tags:
+    - win_shell_publish
+  only:
+    - master
+  when: on_failure
+
+shell_success_notify:
+  stage: notify
+  script:
+    - $win_publish_job_id = Get-Content win-variables.txt -Raw -Force
+    - echo "$win_publish_job_id"
+    - echo "$GITLAB_CI_POST_GROUP_URL"
+    - echo "$GITLAB_CI_POST_USERLIST_URL"
+    - echo "$GITLAB_CI_POST_PRIVATE_TOKEN"
+    - cd '.\tools\gitlab_cicd\'
+    - D:\python\python.exe shell_notify.py -rt 成功 -pgu "$GITLAB_CI_POST_GROUP_URL" -puu "$GITLAB_CI_POST_USERLIST_URL" -aid "$GITLAB_CI_POST_APPID" -apk "$GITLAB_CI_POST_APPKEY" -apt "$GITLAB_CI_POST_PUSHTYPE" -us "$GITLAB_USER_NAME" -pr "$CI_PROJECT_NAME" -rn "$CI_COMMIT_REF_NAME" -cs "$CI_COMMIT_SHA" -bj "$CI_JOB_ID" -pu "$CI_PROJECT_URL" -pi "$CI_PIPELINE_ID" -pwj "$win_publish_job_id" -pe "$GITLAB_CI_POST_EXPIRE" -tok "$GITLAB_CI_POST_PRIVATE_TOKEN"
+  tags:
+    - win_shell_publish
+  only:
+    - master
+  when: on_success

@@ -1,0 +1,3 @@
+#!/bin/sh
+
+./tools/gitlab_cicd/git_pre_commit/check-pre-commit.sh

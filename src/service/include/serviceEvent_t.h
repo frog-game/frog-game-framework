@@ -1,0 +1,32 @@
+
+
+#pragma once
+
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+
+#define DEF_EVENT_SERVICE_STOP 0
+#define DEF_EVENT_BINARY 1
+#define DEF_EVENT_DISCONNECT 2
+#define DEF_EVENT_SEND_OK 3
+#define DEF_EVENT_ACCEPT 4
+#define DEF_EVENT_CONNECT 5
+#define DEF_EVENT_DNS 6
+#define DEF_EVENT_YIELD 7
+#define DEF_EVENT_RUN_AFTER 8
+#define DEF_EVENT_RUN_EVERY 9
+#define DEF_EVENT_MSG 10
+#define DEF_EVENT_COMMAND 11
+#define DEF_EVENT_MASK 0x0F
+
+#define DEF_EVENT_MOVEBUF 0x80
+
+#define DEF_EVENT_MSG_REPLY 0x70
+#define DEF_EVENT_MSG_CALL 0x60
+#define DEF_EVENT_MSG_PING 0x50
+#define DEF_EVENT_MSG_PONG 0x40
+#define DEF_EVENT_MSG_CLOSE 0x30
+#define DEF_EVENT_MSG_SEND 0x20
+#define DEF_EVENT_MSG_TEXT 0x10
+#define DEF_EVENT_MSG_MASK 0x70
